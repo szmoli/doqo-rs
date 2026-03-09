@@ -16,9 +16,7 @@ impl Session {
         }
     }
 
-    pub fn build_symbol_table(&mut self) {
-
-    }
+    // Q: A session fogja a saját fájljain végig hívni a LanguageProcessor extract_symbols függvényét, majd hozzáadni azokat a symbol_table-höz?
 }
 
 pub type SymbolId = usize;
@@ -60,7 +58,7 @@ impl SymbolTable {
 pub struct Symbol {
   pub id: SymbolId,
   pub fqid: String,
-  pub name: String, // can be derived from fqid I think
+  pub name: String, // can be derived from FQID I think
 
   pub parent: Option<SymbolId>,
   pub children: Vec<SymbolId>,
@@ -78,7 +76,7 @@ impl LanguageRegistry {
     }
 
     pub fn register(&mut self, support: Box<dyn LanguagePlugin>) {
-        self.plugins.push(support);
+        self.plugins.push(support);()
     }
 
     pub fn find_by_extension(&self, extension: &str) -> Option<&dyn LanguagePlugin> {
@@ -90,6 +88,7 @@ impl LanguageRegistry {
 
 pub trait LanguagePlugin {
   /*
+    Konzi jegyzetek:
     - kiterjesztések
     - symbol nevek/típusok (treesitter entity - role)
     - nyelv neve
@@ -110,10 +109,12 @@ pub trait LanguagePlugin {
 
 pub trait LanguageProcessor {
   /*
+    Konzi jegyzetek:
     - kinyeri a symbolokat és a hozzá tapadó kommenteket
     - clean comments
     - scopeok kezelése (stackoverflows nestelt cucc, fqid -> symbol)
    */
 
   fn language(&self) -> tree_sitter::Language;
+  fn extract_symbols(&self, source: &str) -> Vec<Symbol>;
 }
