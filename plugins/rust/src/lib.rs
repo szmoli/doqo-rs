@@ -15,6 +15,7 @@ impl LanguageProcessor for RustProcessor {
         "function_item" | "struct_item" | "mod_item" => {
             let symbol = self.create_symbol(node, source, context);
             println!("{:?}", symbol);
+            // TODO: push stack
             context.symbols.push(symbol);
             true 
         }
@@ -27,7 +28,7 @@ impl LanguageProcessor for RustProcessor {
     }
     
     fn create_symbol(&self, node: tree_sitter::Node, source: &str, context: &common::processor::ProcessingContext) -> common::Symbol {
-        //todo!()
+        // TODO: ez nem működik még teljesen, mert nem pusholjuk a stacket
         let node_source = &source[node.byte_range()];
         let node_name = format!("node{}", context.namespace_stack.len());
         Symbol::new(node_name, node_source)
