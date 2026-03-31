@@ -47,7 +47,7 @@ impl LanguageProcessor for RustProcessor {
         else {
           // TODO: comment logic still not clear
           if !node.is_named() {
-            let _documentation = context.make_documentation();
+            let _documentation = context.take_comments();
           }
 
           false

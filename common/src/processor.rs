@@ -1,4 +1,4 @@
-use std::{io, task::Context};
+use std::{io, mem::take, task::Context};
 
 use crate::{Documentation, Symbol, SymbolId, SymbolTable, symbol};
 use tree_sitter::{Node, Parser};
@@ -7,11 +7,11 @@ pub type NodeHandler = fn(node: Node, source: &str, &mut ProcessingContext) -> b
 
 //pub struct ProcessingContext<'a> {
 pub struct ProcessingContext<'a> {
-  namespace_stack: Vec<String>,
+  scope: Vec<String>,
   //pub symbols: Vec<Symbol>,
-  comment_buffer: String,
+  comment_buffer: Vec<String>,
   symbol_table: &'a mut SymbolTable,
-  parent_id_stack: Vec<SymbolId>,
+  id_scope: Vec<SymbolId>,
 }
 
 impl<'a> ProcessingContext<'a> {
@@ -19,45 +19,38 @@ impl<'a> ProcessingContext<'a> {
   pub fn new(symbol_table: &'a mut SymbolTable) -> Self {
   //pub fn new() -> Self {
     Self {
-      namespace_stack: Vec::new(),
-      comment_buffer: String::new(),
+      scope: Vec::new(),
+      comment_buffer: Vec::new(),
       symbol_table: symbol_table,
-      parent_id_stack: Vec::new(),
+      id_scope: Vec::new(),
     }
   }
 
   /// Makes a new Documentation from the comment buffer.
   /// 
   /// Side effect: clears the comment buffer.
-  pub fn make_documentation(&mut self) -> Option<Documentation> {
-    if !self.comment_buffer.is_empty() {
-      let raw = self.comment_buffer.clone();
-      self.comment_buffer.clear();
-      Some(Documentation::new(raw))
-    }
-    else {
-      None
-    }
+  pub fn take_comments(&mut self) -> Vec<String> {
+    take(&mut self.comment_buffer)
   }
 
-  pub fn namespace(&self) -> Vec<String> {
-    self.namespace_stack.clone()
+  pub fn scope(&self) -> &Vec<String> {
+    &self.scope
   }
 
-  pub fn push(&mut self, id: SymbolId, name: String) {
-    self.namespace_stack.push(name);
-    self.parent_id_stack.push(id);
-    debug_assert_eq!(self.parent_id_stack.len(), self.namespace_stack.len());
+  pub fn push(&mut self, id: SymbolId, name: &str) {
+    self.scope.push(String::from(name));
+    self.id_scope.push(id);
+    debug_assert_eq!(self.id_scope.len(), self.scope.len());
   }
 
   pub fn pop(&mut self) -> Option<(SymbolId, String)> {
-    let result = self.parent_id_stack.pop().zip(self.namespace_stack.pop());
-    debug_assert_eq!(self.parent_id_stack.len(), self.namespace_stack.len());
+    let result = self.id_scope.pop().zip(self.scope.pop());
+    debug_assert_eq!(self.id_scope.len(), self.scope.len());
     result
   }
 
   pub fn register_symbol(&mut self, mut symbol: Symbol) -> SymbolId {
-    let parent_id = self.parent_id_stack.last().copied();
+    let parent_id = self.id_scope.last().copied();
     symbol.parent = parent_id;
 
     let id = self.symbol_table.register_symbol(symbol);
@@ -69,8 +62,8 @@ impl<'a> ProcessingContext<'a> {
     id
   }
 
-  pub fn append_comment(&mut self, text: &str) {
-    self.comment_buffer.push_str(text);
+  pub fn push_comment(&mut self, text: &str) {
+    self.comment_buffer.push(String::from(text));
   }
 }
 

@@ -57,9 +57,9 @@ impl SymbolTable {
         self.symbols.get(&id)
     }
 
-    pub fn attach_documentation(&mut self, id: SymbolId, documentation: Documentation) {
+    pub fn append_comment(&mut self, id: SymbolId, comment: &str) {
       if let Some(symbol) = self.symbols.get_mut(&id) {
-        symbol.documentation = Some(documentation);
+        symbol.append_comment(comment);
       }
     }
 }
@@ -69,42 +69,55 @@ impl SymbolTable {
 /// Q: should I store a path of scopes and a name and combine them into an FQID?
 #[derive(Debug)]
 pub struct Symbol {
-  pub id: Option<SymbolId>,
-
   /// Path of the scopes leading to the symbol.
-  pub namespace: Vec<String>,
+  scope: Vec<String>,
 
   /// Name of the symbol.
-  pub name: String, 
-  pub kind: String,
+  name: String, 
+  kind: String,
+  fqid: String,
 
-  pub documentation: Option<Documentation>,
-  pub source: String,
+  documentation: Documentation,
 
   pub parent: Option<SymbolId>,
   pub children: Vec<SymbolId>,
 }
 
 impl Symbol {
-    pub fn new(name: String, kind: String, namespace: Vec<String>, source: &str, documentation: Option<Documentation>) -> Self {
+    pub fn new(name: &str, kind: &str, source: &str, scope: &Vec<String>, comments: Vec<String>) -> Self {
       Self {
-        id: None,
-        namespace: namespace,
-        name: name.to_string(),
-        kind: kind,
-        documentation: documentation,
-        source: source.to_string(),
+        scope: scope.clone(),
+        name: String::from(name),
+        kind: String::from(kind),
+        documentation: Documentation::new(source, comments),
         parent: None,
         children: Vec::new(),
+
+        fqid: if scope.is_empty() {
+          String::from(name)
+        } else {
+          scope.join("::") + "::" + name
+        }
       }
     }
 
-    pub fn fqid(&self) -> String {
-        if self.namespace.is_empty() {
-          return self.name.clone();
-        }
-        let path_str = self.namespace.join("::").to_string();
-        let fqid = path_str + "::" + self.name.as_str();
-        fqid
+    pub fn scope(&self) -> &Vec<String> {
+      &self.scope
+    }
+
+    pub fn source(&self) -> &str {
+      &self.documentation.source
+    }
+
+    pub fn comments(&self) -> String {
+      self.documentation.comments()
+    }
+
+    pub fn fqid(&self) -> &str {
+      &self.fqid
+    }
+
+    pub fn append_comment(&mut self, comment: &str) {
+      self.documentation.append(comment);
     }
 }

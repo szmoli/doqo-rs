@@ -14,75 +14,68 @@ fn get_symbol_name(node: Node, source: &str, field_name: &str) -> String {
 
 pub fn handle_struct_item(node: Node, source: &str, context: &mut ProcessingContext) -> bool {
   let name = get_symbol_name(node, source, "name");
-
-  //println!("Handled struct: {}", name);
-  //println!("\tNode: {:?}", node);
-
-  let documentation = context.make_documentation();
-
-  //println!("\tDocumentation: {:?}", documentation);
-
+  let comments = context.take_comments();
   let symbol = Symbol::new(
-    name.clone(), 
-    node.kind().to_string(), 
-    context.namespace(), 
+    &name, 
+    node.kind(), 
     &source[node.byte_range()], 
-    documentation
+    context.scope(),
+    comments
   );
 
   let id = context.register_symbol(symbol);
 
-  //println!("\tID: {}", id);
-
-  context.push(id, name.clone());
+  context.push(id, &name);
   true
 }
 
 pub fn handle_enum_item(node: Node, source: &str, context: &mut ProcessingContext) -> bool {
   let name = get_symbol_name(node, source, "name");
-  let documentation = context.make_documentation();
+  let comments = context.take_comments();
   let symbol = Symbol::new(
-    name.clone(),
-    node.kind().to_string(), 
-    context.namespace(), 
+    &name,
+    node.kind(), 
     &source[node.byte_range()], 
-    documentation
+    context.scope(), 
+    comments
   );
+
   let id = context.register_symbol(symbol);
 
-  context.push(id, name.clone());
+  context.push(id, &name);
   true
 }
 
 pub fn handle_enum_variant(node: Node, source: &str, context: &mut ProcessingContext) -> bool {
   let name = get_symbol_name(node, source, "name");
-  let documentation = context.make_documentation();
+  let comments = context.take_comments();
   let symbol = Symbol::new(
-    name.clone(),
-    node.kind().to_string(),
-    context.namespace(),
+    &name,
+    node.kind(),
     &source[node.byte_range()],
-    documentation
+    context.scope(),
+    comments
   );
   let id = context.register_symbol(symbol);
 
-  context.push(id, name);
+  context.push(id, &name);
   true
 }
 
 pub fn handle_function_item(node: Node, source: &str, context: &mut ProcessingContext) -> bool {
   let name = get_symbol_name(node, source, "name");
-  let documentation = context.make_documentation();
+  let comments = context.take_comments();
   let symbol = Symbol::new(
-    name.clone(), 
-    node.kind().to_string(), 
-    context.namespace(), 
+    &name, 
+    node.kind(), 
     &source[node.byte_range()], 
-    documentation
+    context.scope(), 
+    comments
   );
+
   let id = context.register_symbol(symbol);
 
-  context.push(id, name);
+  context.push(id, &name);
   true
 }
 
@@ -90,17 +83,18 @@ pub fn handle_function_item(node: Node, source: &str, context: &mut ProcessingCo
 
 pub fn handle_trait_item(node: Node, source: &str, context: &mut ProcessingContext) -> bool {
   let name = get_symbol_name(node, source, "name");
-  let documentation = context.make_documentation();
+  let comments = context.take_comments();
   let symbol = Symbol::new(
-    name.clone(), 
-    node.kind().to_string(), 
-    context.namespace(), 
+    &name, 
+    node.kind(), 
     &source[node.byte_range()], 
-    documentation
+    context.scope(), 
+    comments
   );
+
   let id = context.register_symbol(symbol);
 
-  context.push(id, name);
+  context.push(id, &name);
   true
 }
 
@@ -113,17 +107,18 @@ pub fn handle_impl_item(node: Node, source: &str, context: &mut ProcessingContex
 
 pub fn handle_mod_item(node: Node, source: &str, context: &mut ProcessingContext) -> bool {
   let name = get_symbol_name(node, source, "name");
-  let documentation = context.make_documentation();
+  let comments = context.take_comments();
   let symbol = Symbol::new(
-    name.clone(), 
-    node.kind().to_string(), 
-    context.namespace(), 
+    &name, 
+    node.kind(), 
     &source[node.byte_range()], 
-    documentation
+    context.scope(), 
+    comments
   );
+
   let id = context.register_symbol(symbol);
 
-  context.push(id, name);
+  context.push(id, &name);
   true
 }
 
@@ -136,7 +131,7 @@ pub fn handle_source_file(node: Node, source: &str, context: &mut ProcessingCont
 
 pub fn handle_line_comment(node: Node, source: &str, context: &mut ProcessingContext) -> bool {
   if let Some(_outer_marker) = node.child_by_field_name("outer") {
-    context.append_comment(&source[node.byte_range()]);
+    context.push_comment(&source[node.byte_range()]);
   }
 
   if let Some(_inner_marker) = node.child_by_field_name("inner") {
@@ -155,6 +150,17 @@ pub fn handle_block_comment(node: Node, source: &str, context: &mut ProcessingCo
 }
 
 pub fn handle_const_item(node: Node, source: &str, context: &mut ProcessingContext) -> bool {
-  let _docs = context.make_documentation();
+  let name = get_symbol_name(node, source, "name");
+  let comments = context.take_comments();
+  let symbol = Symbol::new(
+    &name, 
+    node.kind(), 
+    &source[node.byte_range()], 
+    context.scope(), 
+    comments
+  );
+
+  let _id = context.register_symbol(symbol);
+
   false
 }
