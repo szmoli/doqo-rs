@@ -12,7 +12,7 @@ fn create_symbol(node: Node, source: &str, name_field: &str, context: &mut Proce
     .unwrap_or_else(|| format!("anonymous_{}", node.kind()));
   let comments = context.take_comments();
   
-  Symbol::new(&name, node.kind(), &source[node.byte_range()], context.scope(), comments)
+  Symbol::new(&name, node.kind(), &source[node.byte_range()], context.scope(), &comments)
 }
 
 // Core data, logic

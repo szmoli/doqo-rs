@@ -1,6 +1,6 @@
-use crate::documentation;
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Documentation {
   pub source: String,
   comments: Vec<String>,
@@ -9,10 +9,10 @@ pub struct Documentation {
 }
 
 impl Documentation {
-  pub fn new(source: &str, comments: Vec<String>) -> Self {
+  pub fn new(source: &str, comments: &[String]) -> Self {
     Self {
       source: String::from(source),
-      comments: comments
+      comments: Vec::from(comments)
     }
   }
 

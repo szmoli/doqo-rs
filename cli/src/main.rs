@@ -20,4 +20,6 @@ fn main() {
       println!("{:?}", symbol);
       println!();
     }
+
+    println!("JSON:\n{}", symbol_table.json())
 }

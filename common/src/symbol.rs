@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use serde::{Serialize, Deserialize};
 
 use crate::{Documentation};
 
@@ -9,6 +10,7 @@ pub type SymbolId = usize;
 
 /// The symbol table. Maps IDs or FQIDs to Symbols.
 /// The current_id starts from 0 and is incremented every time a new symbol is registered. 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SymbolTable {
   pub symbols: HashMap<SymbolId, Symbol>,
   fqid_index: HashMap<String, SymbolId>,
@@ -66,18 +68,21 @@ impl SymbolTable {
         symbol.append_comment(comment);
       }
     }
+
+    pub fn json(&self) -> String {
+      //serde_json::to_string(self).unwrap()
+      serde_json::to_string_pretty(self).unwrap()
+    }
 }
 
-/// Holds infromation about a single symbol in the source.
-/// 
-/// Q: should I store a path of scopes and a name and combine them into an FQID?
-#[derive(Debug)]
+/// Holds information about a single symbol in the source.
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Symbol {
   /// Path of the scopes leading to the symbol.
-  scope: Vec<String>,
+  //scope: Vec<String>,
 
   /// Name of the symbol.
-  name: String, 
+  //name: String, 
   kind: String,
   fqid: String,
 
@@ -88,10 +93,10 @@ pub struct Symbol {
 }
 
 impl Symbol {
-    pub fn new(name: &str, kind: &str, source: &str, scope: &Vec<String>, comments: Vec<String>) -> Self {
+    pub fn new(name: &str, kind: &str, source: &str, scope: &[String], comments: &[String]) -> Self {
       Self {
-        scope: scope.clone(),
-        name: String::from(name),
+        //scope: scope.clone(),
+        //name: String::from(name),
         kind: String::from(kind),
         documentation: Documentation::new(source, comments),
         parent: None,
@@ -100,13 +105,17 @@ impl Symbol {
         fqid: if scope.is_empty() {
           String::from(name)
         } else {
-          scope.join("::") + "::" + name
+          format!("{}::{}", scope.join("::"), name)
         }
       }
     }
 
-    pub fn scope(&self) -> &Vec<String> {
-      &self.scope
+    pub fn name(&self) -> &str {
+      self.fqid.rsplit_once("::").map(|(_scope, name)| name).unwrap()
+    }
+
+    pub fn scope(&self) -> &str {
+      self.fqid.rsplit_once("::").map(|(scope, _name)| scope).unwrap_or("")
     }
 
     pub fn source(&self) -> &str {
@@ -119,10 +128,6 @@ impl Symbol {
 
     pub fn fqid(&self) -> &str {
       &self.fqid
-    }
-
-    pub fn name(&self) -> &str {
-      &self.name
     }
 
     pub fn append_comment(&mut self, comment: &str) {
