@@ -1,15 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
 use common::{
-    Documentation, LanguageProcessor, Symbol, SymbolTable,
-    processor::{NodeHandler, ProcessingContext},
+    LanguageProcessor, processor::{NodeHandler},
 };
-use tree_sitter::Node;
 
 use crate::handlers::{
-    handle_const_item, handle_enum_item, handle_enum_variant, handle_field_declaration,
-    handle_function_item, handle_line_comment, handle_mod_item, handle_struct_item,
-    handle_trait_item,
+    handle_const_item, handle_enum_item, handle_enum_variant, handle_field_declaration, handle_function_item, handle_line_comment, handle_macro_definition, handle_mod_item, handle_struct_item, handle_trait_item, handle_type_item
 };
 
 pub struct RustProcessor {
@@ -31,10 +27,12 @@ impl RustProcessor {
         handlers.insert("line_comment", handle_line_comment);
         handlers.insert("const_item", handle_const_item);
         handlers.insert("field_declaration", handle_field_declaration);
+        handlers.insert("type_item", handle_type_item);
+        handlers.insert("macro_definition", handle_macro_definition);
 
         Self {
             handlers: handlers,
-            comment_clearers: HashSet::from(["impl_item", "use_declaration", "let_declaration", "macro_invocation"]),
+            comment_clearers: HashSet::from(["use_declaration", "let_declaration", "macro_invocation"]),
         }
     }
 }

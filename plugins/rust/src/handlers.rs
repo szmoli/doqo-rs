@@ -1,6 +1,4 @@
-use std::io::ErrorKind;
-
-use common::{Documentation, Symbol, processor::ProcessingContext};
+use common::{Symbol, processor::ProcessingContext};
 use tree_sitter::Node;
 
 // Function template:

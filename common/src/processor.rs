@@ -1,6 +1,6 @@
-use std::{io, mem::take, task::Context};
+use std::{mem::take};
 
-use crate::{Documentation, Symbol, SymbolId, SymbolTable, symbol};
+use crate::{Symbol, SymbolId, SymbolTable};
 use tree_sitter::{Node, Parser};
 
 pub type NodeHandler = fn(node: Node, source: &str, &mut ProcessingContext) -> bool;

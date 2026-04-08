@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, HashSet}, error::Error, fs, path::{Path, PathBuf}, rc::Rc, sync::Arc};
+use std::{collections::{HashMap, HashSet}, error::Error, fs, path::{Path, PathBuf}};
 
 use crate::{LanguageRegistry, SymbolTable};
 
