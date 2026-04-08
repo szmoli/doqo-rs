@@ -1,32 +1,42 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-use common::{Documentation, LanguageProcessor, Symbol, SymbolTable, processor::{NodeHandler, ProcessingContext}};
+use common::{
+    Documentation, LanguageProcessor, Symbol, SymbolTable,
+    processor::{NodeHandler, ProcessingContext},
+};
 use tree_sitter::Node;
 
-use crate::handlers::{handle_const_item, handle_enum_item, handle_enum_variant, handle_function_item, handle_line_comment, handle_mod_item, handle_struct_item, handle_trait_item};
+use crate::handlers::{
+    handle_const_item, handle_enum_item, handle_enum_variant, handle_field_declaration,
+    handle_function_item, handle_line_comment, handle_mod_item, handle_struct_item,
+    handle_trait_item,
+};
 
 pub struct RustProcessor {
-  handlers: HashMap<&'static str, NodeHandler>,
-  // TODO: make a blacklist for comment clearing.
+    handlers: HashMap<&'static str, NodeHandler>,
+    comment_clearers: HashSet<&'static str>,
+    // TODO: make a blacklist for comment clearing.
 }
 
 impl RustProcessor {
-  pub fn new() -> Self {
-    let mut handlers: HashMap<&'static str, NodeHandler> = HashMap::new();
+    pub fn new() -> Self {
+        let mut handlers: HashMap<&'static str, NodeHandler> = HashMap::new();
 
-    handlers.insert("struct_item", handle_struct_item);
-    handlers.insert("enum_item", handle_enum_item);
-    handlers.insert("enum_variant", handle_enum_variant);
-    handlers.insert("function_item", handle_function_item);
-    handlers.insert("trait_item", handle_trait_item);
-    handlers.insert("mod_item", handle_mod_item);
-    handlers.insert("line_comment", handle_line_comment);
-    handlers.insert("const_item", handle_const_item);
+        handlers.insert("struct_item", handle_struct_item);
+        handlers.insert("enum_item", handle_enum_item);
+        handlers.insert("enum_variant", handle_enum_variant);
+        handlers.insert("function_item", handle_function_item);
+        handlers.insert("trait_item", handle_trait_item);
+        handlers.insert("mod_item", handle_mod_item);
+        handlers.insert("line_comment", handle_line_comment);
+        handlers.insert("const_item", handle_const_item);
+        handlers.insert("field_declaration", handle_field_declaration);
 
-    Self {
-      handlers: handlers
+        Self {
+            handlers: handlers,
+            comment_clearers: HashSet::from(["impl_item"]),
+        }
     }
-  }
 }
 
 impl LanguageProcessor for RustProcessor {
@@ -42,16 +52,14 @@ impl LanguageProcessor for RustProcessor {
         context: &mut common::processor::ProcessingContext,
     ) -> bool {
         if let Some(handler) = self.handlers.get(node.kind()) {
-          handler(node, source, context)
-        }
-        else {
-          // TODO: comment logic still not clear
-          if !node.is_named() {
-            let _documentation = context.take_comments();
-          }
+            handler(node, source, context)
+        } else {
+            // TODO: comment logic still not clear
+            if self.comment_clearers.contains(node.kind()) {
+                let _comment = context.take_comments(); // clear comments
+            }
 
-          false
+            false
         }
     }
 }
-

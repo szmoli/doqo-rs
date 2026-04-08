@@ -8,6 +8,8 @@ pub const GLOBAL_TIMEOUT: u64 = 30; // regular line comment
 /// The primary data structure for the test suite.
 /// This struct has generics and lifetimes to test your string parsing.
 pub struct Manager<'a, T> {
+    //! This should be attached to the Manager. :)
+
     /// A public field with docs.
     pub name: &'a str,
     /// A private field (should your extractor show this?).

@@ -47,18 +47,22 @@ impl SymbolTable {
     }
 
     /// Get the Symbol mapped to the FQID.
-    pub fn find_by_fqid(&self, fqid: &String) -> Option<&Symbol> {
-        let id = self.fqid_index.get(fqid).expect("FQID {fqid} not found");
+    //pub fn find_by_fqid(&self, fqid: &String) -> Option<&Symbol> {
+    //    let id = self.fqid_index.get(fqid).expect("FQID {fqid} not found");
+    //    self.symbols.get(id)
+    //}
+
+    /// Get the Symbol mapped to the internal ID.
+    pub fn get(&self, id: &SymbolId) -> Option<&Symbol> {
         self.symbols.get(id)
     }
 
-    /// Get the Symbol mapped to the internal ID.
-    pub fn find_by_id(&self, id: SymbolId) -> Option<&Symbol> {
-        self.symbols.get(&id)
+    pub fn get_mut(&mut self, id: &SymbolId) -> Option<&mut Symbol> {
+      self.symbols.get_mut(id)
     }
 
-    pub fn append_comment(&mut self, id: SymbolId, comment: &str) {
-      if let Some(symbol) = self.symbols.get_mut(&id) {
+    pub fn append_comment(&mut self, id: &SymbolId, comment: &str) {
+      if let Some(symbol) = self.symbols.get_mut(id) {
         symbol.append_comment(comment);
       }
     }
@@ -115,6 +119,10 @@ impl Symbol {
 
     pub fn fqid(&self) -> &str {
       &self.fqid
+    }
+
+    pub fn name(&self) -> &str {
+      &self.name
     }
 
     pub fn append_comment(&mut self, comment: &str) {

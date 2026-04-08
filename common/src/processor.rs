@@ -49,6 +49,16 @@ impl<'a> ProcessingContext<'a> {
     result
   }
 
+  pub fn top(&self) -> Option<&Symbol> {
+    let id = self.id_scope.last()?;
+    self.symbol_table.get(id)
+  }
+
+  pub fn top_mut(&mut self) -> Option<&mut Symbol> {
+    let id = self.id_scope.last()?;
+    self.symbol_table.get_mut(id)
+  }
+
   pub fn register_symbol(&mut self, mut symbol: Symbol) -> SymbolId {
     let parent_id = self.id_scope.last().copied();
     symbol.parent = parent_id;
