@@ -34,7 +34,7 @@ impl RustProcessor {
 
         Self {
             handlers: handlers,
-            comment_clearers: HashSet::from(["impl_item"]),
+            comment_clearers: HashSet::from(["impl_item", "use_declaration", "let_declaration", "macro_invocation"]),
         }
     }
 }
