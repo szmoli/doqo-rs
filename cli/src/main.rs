@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs::{self, File}, io::{BufWriter, Write}, path::Path};
 
 use common::{LanguagePlugin, SymbolTable};
 use rust::plugin::RustPlugin;
@@ -6,7 +6,7 @@ use rust::plugin::RustPlugin;
 fn main() {
     let mut symbol_table = SymbolTable::new();
     let rust_plugin = RustPlugin;
-    let source = fs::read_to_string("../input/in.rs").expect("Failed to read input");
+    let source = Path::new("../input/in.rs");
 
     //println!("{}", source);
 
@@ -21,5 +21,14 @@ fn main() {
       println!();
     }
 
-    println!("JSON:\n{}", symbol_table.json())
+    let json = symbol_table.json();
+    let path = Path::new("out/symbol_table.json");
+    let file = File::create(path).expect(format!("Unable to create file at {}", path.display()).as_str());
+    let mut writer = BufWriter::new(file);
+    writer.write_all(json.as_bytes()).expect("Unable to write data");
+    writer.flush().expect("Unable to flush buffer");
+    
+    println!("JSON:\n{}", json)
+
+    
 }

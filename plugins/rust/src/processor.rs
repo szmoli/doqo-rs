@@ -5,7 +5,7 @@ use common::{
 };
 
 use crate::handlers::{
-    handle_const_item, handle_enum_item, handle_enum_variant, handle_field_declaration, handle_function_item, handle_line_comment, handle_macro_definition, handle_mod_item, handle_struct_item, handle_trait_item, handle_type_item
+    handle_const_item, handle_enum_item, handle_enum_variant, handle_field_declaration, handle_function_item, handle_line_comment, handle_macro_definition, handle_mod_item, handle_source_file, handle_struct_item, handle_trait_item, handle_type_item
 };
 
 pub struct RustProcessor {
@@ -29,6 +29,7 @@ impl RustProcessor {
         handlers.insert("field_declaration", handle_field_declaration);
         handlers.insert("type_item", handle_type_item);
         handlers.insert("macro_definition", handle_macro_definition);
+        handlers.insert("source_file", handle_source_file);
 
         Self {
             handlers: handlers,

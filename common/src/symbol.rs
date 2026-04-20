@@ -13,7 +13,9 @@ pub type SymbolId = usize;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SymbolTable {
   pub symbols: HashMap<SymbolId, Symbol>,
+  #[serde(skip_serializing)]
   fqid_index: HashMap<String, SymbolId>,
+  #[serde(skip_serializing)]
   current_id: SymbolId,
 }
 
@@ -111,7 +113,7 @@ impl Symbol {
     }
 
     pub fn name(&self) -> &str {
-      self.fqid.rsplit_once("::").map(|(_scope, name)| name).unwrap()
+      self.fqid.rsplit_once("::").map(|(_scope, name)| name).unwrap_or(self.fqid.as_str())
     }
 
     pub fn scope(&self) -> &str {

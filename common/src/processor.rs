@@ -1,4 +1,4 @@
-use std::{mem::take};
+use std::{ffi::OsStr, fs, mem::take, path::Path};
 
 use crate::{Symbol, SymbolId, SymbolTable};
 use tree_sitter::{Node, Parser};
@@ -12,17 +12,19 @@ pub struct ProcessingContext<'a> {
   comment_buffer: Vec<String>,
   symbol_table: &'a mut SymbolTable,
   id_scope: Vec<SymbolId>,
+  source_filename: String,
 }
 
 impl<'a> ProcessingContext<'a> {
 //impl ProcessingContext {
-  pub fn new(symbol_table: &'a mut SymbolTable) -> Self {
+  pub fn new(symbol_table: &'a mut SymbolTable, source_filename: &str) -> Self {
   //pub fn new() -> Self {
     Self {
       scope: Vec::new(),
       comment_buffer: Vec::new(),
       symbol_table: symbol_table,
       id_scope: Vec::new(),
+      source_filename: String::from(source_filename),
     }
   }
 
@@ -75,6 +77,10 @@ impl<'a> ProcessingContext<'a> {
   pub fn push_comment(&mut self, text: &str) {
     self.comment_buffer.push(String::from(text));
   }
+
+  pub fn filename(&self) -> &str {
+    &self.source_filename
+  }
 }
 
 /// Processes a specific language into symbols.
@@ -83,16 +89,18 @@ pub trait LanguageProcessor {
     fn language(&self) -> tree_sitter::Language;
 
     /// Extract the symbols from a source string.
-    fn process(&self, source: &str, symbol_table: &mut SymbolTable) {
-        let mut context = ProcessingContext::new(symbol_table);
+    fn process(&self, source_path: &Path, symbol_table: &mut SymbolTable) {
+        let source = fs::read_to_string(&source_path).expect("Failed to read input");
+        let filename = source_path.file_name().and_then(|f| f.to_str()).unwrap_or("unknown_file");
+        let mut context = ProcessingContext::new(symbol_table, &filename);
 
         let mut parser = Parser::new();
         parser
             .set_language(&self.language())
             .expect("Failed to set parser language.");
 
-        let tree = parser.parse(source, None).expect("Failed to parse tree.");
-        self.walk_recursive(tree.root_node(), source, &mut context);
+        let tree = parser.parse(source.as_str(), None).expect("Failed to parse tree.");
+        self.walk_recursive(tree.root_node(), source.as_str(), &mut context);
     }
 
     fn walk_recursive(&self, node: Node, source: &str, context: &mut ProcessingContext) {
