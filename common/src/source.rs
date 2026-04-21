@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::{PathBuf}};
+use std::{path::PathBuf, rc::Rc};
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -6,7 +6,8 @@ use ts_rs::TS;
 pub type FileId = usize;
 
 #[derive(Debug, Serialize, Deserialize, TS)]
-pub struct SourceFile {
+#[ts(rename = "DoqoSource")]
+pub struct Source {
     pub path: PathBuf,
-    pub content: String,
+    pub content: Rc<String>,
 }

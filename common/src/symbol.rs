@@ -1,12 +1,13 @@
-use std::{collections::HashMap, fs::{self, File}, path::{Path, PathBuf}};
+use std::{collections::HashMap, fs::{self, File}, path::{Path, PathBuf}, rc::Rc};
 use serde::{Serialize, Deserialize};
 use ts_rs::TS;
 
-use crate::{Documentation, source::{FileId, SourceFile}};
+use crate::{Documentation, source::{FileId, Source}};
 
 #[derive(Debug, Serialize, Deserialize, TS)]
+#[ts(rename = "DoqoSpan")]
 pub struct Span {
-  pub file_id: FileId,
+  pub source_id: FileId,
   pub start: usize,
   pub end: usize,
 }
@@ -22,7 +23,7 @@ pub type SymbolId = usize;
 #[ts(export, rename = "DoqoSymbolTable")]
 pub struct SymbolTable {
   pub symbols: HashMap<SymbolId, Symbol>,
-  pub sources: HashMap<FileId, SourceFile>,
+  pub sources: HashMap<FileId, Source>,
   fqid_index: HashMap<String, SymbolId>,
   #[serde(skip_serializing)]
   #[ts(skip)]
@@ -52,7 +53,7 @@ impl SymbolTable {
     /// Side effect: incements current_id by one.
     pub fn register_symbol(&mut self, symbol: Symbol) -> SymbolId {
         let id = self.current_symbol_id;
-        self.fqid_index.insert(symbol.fqid().to_string(), id);
+        self.fqid_index.insert(symbol.fqid.clone(), id);
         self.symbols.insert(id, symbol);
         self.current_symbol_id += 1;
         id
@@ -62,15 +63,22 @@ impl SymbolTable {
       let id = self.current_file_id;
 
       let content = fs::read_to_string(&path).expect("Couldn't read file.");
-      let source_file = SourceFile { path, content };
-      self.sources.insert(id, source_file);
+      let source_file = Source { 
+        path, 
+        content: Rc::new(content) 
+      };
 
+      self.sources.insert(id, source_file);
       self.current_file_id += 1;
       id
     }
 
-    pub fn source(&self, file_id: &FileId) -> String {
-      self.sources.get(&file_id).expect("File not found.").content.clone()
+    pub fn get_file(&self, file_id: &FileId) -> Option<&Source> {
+      self.sources.get(&file_id)
+    }
+
+    pub fn get_source(&self, file_id: &FileId) -> Option<Rc<String>> {
+      self.sources.get(file_id).map(|f| Rc::clone(&f.content))
     }
 
     pub fn link_child(&mut self, parent_id: SymbolId, child_id: SymbolId) {
@@ -81,18 +89,12 @@ impl SymbolTable {
       }
     }
 
-    /// Get the Symbol mapped to the FQID.
-    //pub fn find_by_fqid(&self, fqid: &String) -> Option<&Symbol> {
-    //    let id = self.fqid_index.get(fqid).expect("FQID {fqid} not found");
-    //    self.symbols.get(id)
-    //}
-
     /// Get the Symbol mapped to the internal ID.
-    pub fn get(&self, id: &SymbolId) -> Option<&Symbol> {
+    pub fn get_symbol(&self, id: &SymbolId) -> Option<&Symbol> {
         self.symbols.get(id)
     }
 
-    pub fn get_mut(&mut self, id: &SymbolId) -> Option<&mut Symbol> {
+    pub fn get_symbol_mut(&mut self, id: &SymbolId) -> Option<&mut Symbol> {
       self.symbols.get_mut(id)
     }
 
@@ -117,18 +119,18 @@ pub struct Symbol {
 
   /// Name of the symbol.
   //name: String, 
-  kind: String,
-  fqid: String,
+  pub kind: String,
+  pub fqid: String,
 
-  span: Span,
-  documentation: Documentation,
+  pub span: Span,
+  pub documentation: Documentation,
 
   pub parent: Option<SymbolId>,
   pub children: Vec<SymbolId>,
 }
 
 impl Symbol {
-    pub fn new(name: &str, kind: &str, file_id: FileId, start: usize, end: usize, scope: &[String], comments: &[String]) -> Self {
+    pub fn new(name: &str, kind: &str, source_file_id: FileId, start: usize, end: usize, scope: &[String], comments: &[String]) -> Self {
       Self {
         //scope: scope.clone(),
         //name: String::from(name),
@@ -137,7 +139,7 @@ impl Symbol {
         parent: None,
         children: Vec::new(),
 
-        span: Span { file_id, start, end },
+        span: Span { source_id: source_file_id, start, end },
 
         fqid: if scope.is_empty() {
           String::from(name)
@@ -147,6 +149,8 @@ impl Symbol {
       }
     }
 
+    // FQID mappings
+
     pub fn name(&self) -> &str {
       self.fqid.rsplit_once("::").map(|(_scope, name)| name).unwrap_or(self.fqid.as_str())
     }
@@ -155,17 +159,7 @@ impl Symbol {
       self.fqid.rsplit_once("::").map(|(scope, _name)| scope).unwrap_or("")
     }
 
-    pub fn span(&self) -> &Span {
-      &self.span
-    }
-
-    pub fn comments(&self) -> String {
-      self.documentation.comments()
-    }
-
-    pub fn fqid(&self) -> &str {
-      &self.fqid
-    }
+    // Comments
 
     pub fn append_comment(&mut self, comment: &str) {
       self.documentation.append(comment);
