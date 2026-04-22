@@ -6,6 +6,7 @@
 	import SymbolCard from '$lib/components/SymbolCard.svelte';
 	import SymbolBreadcrumbs from '$lib/components/SymbolBreadcrumbs.svelte';
 	import CodeBlock from '$lib/components/CodeBlock.svelte';
+	import Documentation from '$lib/components/Documentation.svelte';
 
 	const symbolTable = symbolTableJson as DoqoSymbolTable;
   const languages = $derived(
@@ -39,7 +40,8 @@
     </header>
 
 		<div class="space-y-2 font-sans leading-relaxed text-gray-700">
-			{symbol.documentation.comments}
+			<!--{symbol.documentation.comments}-->
+      <Documentation {symbol}/>
 		</div>
 
 		<!--pre class="overflow-x-auto rounded bg-slate-900 p-4 text-white shadow-lg">
