@@ -12,7 +12,6 @@
 //! ## Code test
 //! 
 //! Here is some **inline** code: `let foo = "bar";`.
-//! ```
 
 /// A top-level constant.
 pub const GLOBAL_TIMEOUT: u64 = 30; // regular line comment
