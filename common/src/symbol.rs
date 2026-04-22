@@ -2,15 +2,7 @@ use std::{collections::HashMap, fs::{self, File}, path::{Path, PathBuf}, rc::Rc}
 use serde::{Serialize, Deserialize};
 use ts_rs::TS;
 
-use crate::{Documentation, source::{FileId, Source}};
-
-#[derive(Debug, Serialize, Deserialize, TS)]
-#[ts(rename = "DoqoSpan")]
-pub struct Span {
-  pub source_id: FileId,
-  pub start: usize,
-  pub end: usize,
-}
+use crate::{Documentation, source::{FileId, Source, Span}};
 
 /// The internal ID of a symbol.
 /// 
@@ -23,8 +15,9 @@ pub type SymbolId = usize;
 #[ts(export, rename = "DoqoSymbolTable")]
 pub struct SymbolTable {
   pub symbols: HashMap<SymbolId, Symbol>,
-  pub sources: HashMap<FileId, Source>,
+  pub sources: HashMap<FileId, Rc<Source>>,
   fqid_index: HashMap<String, SymbolId>,
+
   #[serde(skip_serializing)]
   #[ts(skip)]
   current_symbol_id: SymbolId,
@@ -59,26 +52,26 @@ impl SymbolTable {
         id
     }
 
-    pub fn register_file(&mut self, path: PathBuf) -> FileId {
+    pub fn register_file(&mut self, path: PathBuf, language: &str) -> FileId {
       let id = self.current_file_id;
 
       let content = fs::read_to_string(&path).expect("Couldn't read file.");
       let source_file = Source { 
         path, 
-        content: Rc::new(content) 
+        content: content,
+        language: String::from(language)
       };
 
-      self.sources.insert(id, source_file);
+      self.sources.insert(
+        id, 
+        Rc::new(source_file)
+      );
       self.current_file_id += 1;
       id
     }
 
-    pub fn get_file(&self, file_id: &FileId) -> Option<&Source> {
-      self.sources.get(&file_id)
-    }
-
-    pub fn get_source(&self, file_id: &FileId) -> Option<Rc<String>> {
-      self.sources.get(file_id).map(|f| Rc::clone(&f.content))
+    pub fn get_source(&self, file_id: &FileId) -> Option<Rc<Source>> {
+      self.sources.get(file_id).cloned()
     }
 
     pub fn link_child(&mut self, parent_id: SymbolId, child_id: SymbolId) {
@@ -119,6 +112,8 @@ pub struct Symbol {
 
   /// Name of the symbol.
   //name: String, 
+  pub language: String,
+
   pub kind: String,
   pub fqid: String,
 
@@ -130,7 +125,7 @@ pub struct Symbol {
 }
 
 impl Symbol {
-    pub fn new(name: &str, kind: &str, source_file_id: FileId, start: usize, end: usize, scope: &[String], comments: &[String]) -> Self {
+    pub fn new(name: &str, kind: &str, source_file_id: FileId, start: usize, end: usize, scope: &[String], comments: &[String], language: &str) -> Self {
       Self {
         //scope: scope.clone(),
         //name: String::from(name),
@@ -138,6 +133,7 @@ impl Symbol {
         documentation: Documentation::new(comments),
         parent: None,
         children: Vec::new(),
+        language: String::from(language),
 
         span: Span { source_id: source_file_id, start, end },
 

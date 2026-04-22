@@ -9,5 +9,14 @@ pub type FileId = usize;
 #[ts(rename = "DoqoSource")]
 pub struct Source {
     pub path: PathBuf,
-    pub content: Rc<String>,
+    pub content: String,
+    pub language: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, TS)]
+#[ts(rename = "DoqoSpan")]
+pub struct Span {
+  pub source_id: FileId,
+  pub start: usize,
+  pub end: usize,
 }

@@ -14,7 +14,7 @@ fn node_name(node: Node, source: &str, name_field: &str) -> String {
 
 fn create_symbol(node: Node, name: &str, context: &mut ProcessingContext) -> Symbol {
   let comments = context.take_comments();
-  let (source_file_id, _) = context.current_source_file();
+  let source_file_id = context.current_source_id();
   
   Symbol::new(
     name,
@@ -23,7 +23,8 @@ fn create_symbol(node: Node, name: &str, context: &mut ProcessingContext) -> Sym
     node.start_byte(),
     node.end_byte(),
     context.current_scope(),
-    &comments
+    &comments,
+    &context.current_source().language
   )
 }
 
@@ -142,8 +143,7 @@ pub fn handle_mod_item(node: Node, source: &str, context: &mut ProcessingContext
 }
 
 pub fn handle_source_file(node: Node, source: &str, context: &mut ProcessingContext) -> bool {
-  let (_, source_file) = context.current_source_file();
-  let name = source_file.path.file_name().expect("No filename").to_string_lossy().into_owned();
+  let name = context.current_source().path.file_name().expect("No filename").to_string_lossy().into_owned();
   let symbol = create_symbol(node, &name, context);
 
   let id = context.register_symbol(symbol);
