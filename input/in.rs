@@ -2,18 +2,16 @@
 //! 
 //! The frontend should render this as *Markdown*.
 //! 
+//! ## List test
+//! 
 //! This is a list:
 //! - Element 1
 //! - Element 2
 //! - Element 3
 //! 
-//! Here is some **inline** code: `let foo = "bar";`.
+//! ## Code test
 //! 
-//! Here is a code snippet:
-//! ``` rust
-//! function foo() -> &str {
-//!   "bar"
-//! }
+//! Here is some **inline** code: `let foo = "bar";`.
 //! ```
 
 /// A top-level constant.
