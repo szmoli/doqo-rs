@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use common::{Symbol, SymbolTable, Documentation};
+    use common::{Symbol, Registry, Documentation};
     
     #[test]
     fn generate_bindings() {

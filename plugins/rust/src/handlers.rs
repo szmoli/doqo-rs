@@ -24,7 +24,7 @@ fn create_symbol(node: Node, name: &str, context: &mut ProcessingContext) -> Sym
     node.end_byte(),
     context.current_scope(),
     &comments,
-    &context.current_source().language
+    // &context.current_source().language
   )
 }
 

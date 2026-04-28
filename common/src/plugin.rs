@@ -1,6 +1,8 @@
 use std::collections::HashSet;
 use crate::LanguageProcessor;
 
+pub type PluginId = usize;
+
 /// Holds the known language plugins.
 pub struct LanguageRegistry {
   plugins: Vec<Box<dyn LanguagePlugin>>,
@@ -25,7 +27,7 @@ impl LanguageRegistry {
 }
 
 /// Describes a language.
-pub trait LanguagePlugin {
+pub trait LanguagePlugin: std::fmt::Debug {
   /*
     Konzi jegyzetek:
     - kiterjesztések

@@ -1,10 +1,10 @@
 use std::{fs::{self, File}, io::{BufWriter, Write}, path::{Path, PathBuf}};
 
-use common::{LanguagePlugin, SymbolTable};
+use common::{LanguagePlugin, Registry};
 use rust::plugin::RustPlugin;
 
 fn main() {
-    let mut symbol_table = SymbolTable::new();
+    let mut symbol_table = Registry::new();
     let rust_plugin = RustPlugin;
     let path = PathBuf::from("../input/in.rs");
 

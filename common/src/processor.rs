@@ -1,6 +1,6 @@
 use std::{mem::take, path::PathBuf, rc::Rc};
 
-use crate::{Symbol, SymbolId, SymbolTable, source::{FileId, Source}};
+use crate::{Symbol, SymbolId, Registry, source::{SourceId, Source}};
 use tree_sitter::{Node, Parser};
 
 pub type NodeHandler = fn(node: Node, source: &str, &mut ProcessingContext) -> bool;
@@ -8,14 +8,14 @@ pub type NodeHandler = fn(node: Node, source: &str, &mut ProcessingContext) -> b
 pub struct ProcessingContext<'a> {
   scope: Vec<String>,
   comment_buffer: Vec<String>,
-  symbol_table: &'a mut SymbolTable,
+  symbol_table: &'a mut Registry,
   source: Rc<Source>,
   id_scope: Vec<SymbolId>,
-  source_file_id: FileId,
+  source_file_id: SourceId,
 }
 
 impl<'a> ProcessingContext<'a> {
-  pub fn new(symbol_table: &'a mut SymbolTable, source_file_id: FileId, source: Rc<Source>) -> Self {
+  pub fn new(symbol_table: &'a mut Registry, source_file_id: SourceId, source: Rc<Source>) -> Self {
     Self {
       scope: Vec::new(),
       comment_buffer: Vec::new(),
@@ -31,7 +31,7 @@ impl<'a> ProcessingContext<'a> {
     &self.source
   }
 
-  pub fn current_source_id(&self) -> FileId {
+  pub fn current_source_id(&self) -> SourceId {
     self.source_file_id
   } 
 
@@ -98,16 +98,13 @@ pub trait LanguageProcessor {
     /// Get the Tree Sitter grammar for the language.
     fn language(&self) -> tree_sitter::Language;
 
-    fn language_display(&self) -> &str;
-
     /// Takes a path to a source file and processes its contents.
     /// 
     /// Side effects: 
     /// - registers the source file into the symbol table
     /// - registers the symbols found in the file while walking its syntax tree
-    fn process(&self, source_path: &PathBuf, symbol_table: &mut SymbolTable) {
-        let source_id = symbol_table.register_file(source_path.to_path_buf(), self.language_display());
-        let source_rc = symbol_table.get_source(&source_id).expect("Couldn't find file in registry");
+    fn process(&self, source_id: SourceId, registry: &mut Registry) {
+        let source_rc = registry.get_source(&source_id).expect("Couldn't find file in registry");
         let content = source_rc.content.as_str();
 
         let mut parser = Parser::new();
@@ -117,7 +114,7 @@ pub trait LanguageProcessor {
 
         let tree = parser.parse(content, None).expect("Failed to parse tree.");
 
-        let mut context = ProcessingContext::new(symbol_table, source_id, source_rc.clone());
+        let mut context = ProcessingContext::new(registry, source_id, source_rc.clone());
 
         self.walk_recursive(tree.root_node(), content, &mut context);
     }

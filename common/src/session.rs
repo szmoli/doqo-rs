@@ -1,13 +1,13 @@
 use std::{collections::{HashMap, HashSet}, error::Error, fs, path::{Path, PathBuf}};
 
-use crate::{LanguageRegistry, SymbolTable};
+use crate::{LanguageRegistry, Registry};
 
 /// A session for multi-language projects
 /// 
 /// Q: A session fogja a saját fájljain végig hívni a LanguageProcessor extract_symbols függvényét, majd hozzáadni azokat a symbol_table-höz?
 pub struct Session {
   /// Symbol table for the session.
-  symbol_table: SymbolTable,
+  symbol_table: Registry,
 
   /// Language plugins for the session.
   language_registry: LanguageRegistry,
@@ -23,7 +23,7 @@ pub struct Session {
 impl Session {
   pub fn new() -> Self {
     Self {
-      symbol_table: SymbolTable::new(),
+      symbol_table: Registry::new(),
       language_registry: LanguageRegistry::new(),
       sources: HashMap::new(),
       ignored: HashSet::new(),
