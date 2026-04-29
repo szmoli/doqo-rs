@@ -1,3 +1,5 @@
+use std::{fs::File, io::{BufWriter, Write}, path::Path};
+
 use common::{LanguagePlugin, Registry, Session};
 use rust::plugin::RustPlugin;
 
@@ -8,6 +10,12 @@ fn main() {
 
     let _scan_result = session.scan_sources();
 
+    let json = session.process();    
+    let path = Path::new("json/registry.json");
+    let file = File::create(path).expect(format!("Unable to create file at {}", path.display()).as_str());
+    let mut writer = BufWriter::new(file);
+    writer.write_all(json.as_bytes()).expect("Unable to write data");
+    writer.flush().expect("Unable to flush buffer");
 
     /*
     let mut symbol_table = Registry::new();
