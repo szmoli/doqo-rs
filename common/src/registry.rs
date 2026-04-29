@@ -25,7 +25,11 @@ pub struct Registry {
     #[ts(skip)]
     plugins: HashMap<PluginId, Rc<Box<dyn LanguagePlugin>>>,
 
+    #[serde(skip_serializing)]
+    #[ts(skip)]
     plugin_for_source: HashMap<SourceId, PluginId>,
+    #[serde(skip_serializing)]
+    #[ts(skip)]
     plugin_for_extension: HashMap<String, PluginId>,
 
     #[serde(skip_serializing)]

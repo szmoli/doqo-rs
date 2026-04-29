@@ -1,27 +1,28 @@
 <script lang="ts">
+  import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import symbolTableJson from '$lib/json/symbol_table.json';
-	import type { DoqoSymbolTable } from '$lib/bindings/DoqoSymbolTable';
+	import registryJson from '$lib/json/registry.json';
+	import type { DoqoRegistry } from '$lib/bindings/DoqoRegistry';
 	import { pathToFqid, symbolName, source } from '$lib/utils';
 	import SymbolCard from '$lib/components/SymbolCard.svelte';
 	import SymbolBreadcrumbs from '$lib/components/SymbolBreadcrumbs.svelte';
 	import CodeBlock from '$lib/components/CodeBlock.svelte';
 	import Documentation from '$lib/components/Documentation.svelte';
 
-	const symbolTable = symbolTableJson as DoqoSymbolTable;
+	const registry = registryJson as DoqoRegistry;
 	const languages = $derived([
-		...new Set(Object.values(symbolTable.sources).map((s) => s.language))
+		...new Set(Object.values(registry.sources).map((s) => s.language.toLowerCase()))
 	]);
 
 	const path = $derived(page.params.fqid ?? '');
 	const fqid = $derived(pathToFqid(path));
 
-	const symbol = $derived(Object.values(symbolTable.symbols).find((s) => s.fqid === fqid));
-	const language = $derived(symbol ? symbol.language : '');
-	const code = $derived(symbol ? source(symbol, symbolTable) : '');
+	const symbol = $derived(Object.values(registry.symbols).find((s) => s.fqid === fqid));
+	const language = $derived(symbol ? registry.sources[symbol.span.source_id].language : '');
+	const code = $derived(symbol ? source(symbol, registry) : '');
 
 	const childrenList = $derived(
-		symbol?.children.map((id) => symbolTable.symbols[id]).filter(Boolean) ?? []
+		symbol?.children.map((id) => registry.symbols[id]).filter(Boolean) ?? []
 	);
 	const groupedChildren = $derived(Object.groupBy(childrenList, (c) => c.kind));
 	const childKinds = $derived(Object.keys(groupedChildren).sort());
@@ -68,14 +69,14 @@
 						<h2 class="text-xs font-bold tracking-widest text-slate-400 uppercase">Members</h2>
 					</div>
 
-					{#each childKinds as kind}
+					{#each childKinds as kind (kind)}
 						<div class="space-y-4">
 							<h3 class="text-sm font-semibold text-slate-600 capitalize">
 								{kind}
 							</h3>
 
 							<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-								{#each groupedChildren[kind] as child}
+								{#each groupedChildren[kind] as child (child)}
 									<SymbolCard symbol={child} />
 								{/each}
 							</div>
@@ -90,7 +91,7 @@
 		<h1 class="mb-4 text-2xl font-bold text-slate-800">Symbol not found</h1>
 		<p class="mb-6 font-mono text-slate-500">{fqid}</p>
 		<a
-			href="/"
+			href={resolve("/")}
 			class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
 		>
 			Return to index

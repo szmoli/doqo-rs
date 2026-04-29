@@ -1,15 +1,15 @@
 <script lang="ts">
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
-	import symbolTableJson from '$lib/json/symbol_table.json';
+	import registryJson from '$lib/json/registry.json';
 	import SymbolLink from '$lib/components/SymbolLink.svelte';
-	import type { DoqoSymbolTable } from '$lib/bindings/DoqoSymbolTable';
+	import type { DoqoRegistry } from '$lib/bindings/DoqoRegistry';
 	import SearchBar from '$lib/components/SearchBar.svelte';
 
-	const symbolTable = symbolTableJson as DoqoSymbolTable;
+	const registry = registryJson as DoqoRegistry;
 
 	let { children } = $props();
-	let symbolsList = $derived(Object.values(symbolTable.symbols));
+	let symbolsList = $derived(Object.values(registry.symbols));
 
 	const symbolsByKind = $derived(Object.groupBy(symbolsList, (s) => s.kind));
 	const kinds = $derived(Object.keys(symbolsByKind));
@@ -20,16 +20,16 @@
 <div class="flex h-screen">
 	<aside class="overflow-y-auto border-r border-slate-200 px-2">
 		<header class="flex items-center justify-between border-b border-slate-200 py-4 ">
-				<SearchBar {symbolTable} />
+				<SearchBar symbolTable={registry} />
 		</header>
 		<nav>
 			<h2 class="mb-2 mt-4 text-s font-bold tracking-widest uppercase">Symbols</h2>
-			{#each kinds as kind}
+			{#each kinds as kind (kind)}
 				<h3 class="mb-2 flex items-center justify-between text-xs font-semibold text-slate-500">
 					{kind}
 				</h3>
 				<ul class="mb-2">
-					{#each symbolsByKind[kind] as symbol}
+					{#each symbolsByKind[kind] as symbol (symbol)}
 						<li>
 							<SymbolLink {symbol} />
 						</li>
