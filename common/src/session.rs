@@ -1,15 +1,9 @@
-use std::{
-    collections::{HashMap, HashSet},
-    error::Error,
-    fs,
-    path::{Path, PathBuf},
-    process,
-};
+use std::{error::Error, fs, path::PathBuf};
 
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use walkdir::WalkDir;
 
-use crate::{LanguagePlugin, Registry, plugin::{self, PluginId}};
+use crate::{LanguagePlugin, Registry, plugin::PluginId, source::SourceId};
 
 /// A session for multi-language projects
 pub struct Session {
@@ -36,7 +30,7 @@ impl Session {
     }
 
     pub fn register_plugin(&mut self, plugin: Box<dyn LanguagePlugin>) -> PluginId {
-      self.registry.register_plugin(plugin)
+        self.registry.register_plugin(plugin)
     }
 
     pub fn scan_sources(&mut self) -> Result<(), Box<dyn Error>> {
@@ -67,6 +61,29 @@ impl Session {
         println!("Finished scanning project.");
 
         Ok(())
+    }
+
+    pub fn process(&mut self) -> String {
+        println!("Processing project");
+
+        let tasks = self.registry.sources_for_plugin();
+
+        for (plugin_id, source_ids) in tasks {
+            let plugin = self.registry.get_plugin(&plugin_id);
+
+            if let Some(plugin) = plugin {
+                let processor = plugin.processor();
+
+                for source_id in source_ids {
+                  println!("Processing source {}", source_id);
+                  processor.process(source_id, &mut self.registry);
+                }
+            }
+        }
+
+        println!("Finished processing project");
+        
+        self.registry.json()
     }
 
     fn load_ignore_set(

@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    fs::{self, File},
+    fs::{self},
     path::PathBuf,
     rc::Rc,
 };
@@ -25,7 +25,7 @@ pub struct Registry {
     #[ts(skip)]
     plugins: HashMap<PluginId, Rc<Box<dyn LanguagePlugin>>>,
 
-    plugin_for_file: HashMap<SourceId, PluginId>,
+    plugin_for_source: HashMap<SourceId, PluginId>,
     plugin_for_extension: HashMap<String, PluginId>,
 
     #[serde(skip_serializing)]
@@ -44,7 +44,7 @@ impl Registry {
         Self {
             symbols: HashMap::new(),
             sources: HashMap::new(),
-            plugin_for_file: HashMap::new(),
+            plugin_for_source: HashMap::new(),
             plugin_for_extension: HashMap::new(),
             plugins: HashMap::new(),
             current_symbol_id: 0,
@@ -78,6 +78,10 @@ impl Registry {
         id
     }
 
+    pub fn get_plugin(&self, plugin_id: &PluginId) -> Option<Rc<Box<dyn LanguagePlugin>>> {
+      self.plugins.get(plugin_id).cloned()
+    }
+
     pub fn register_source(&mut self, path: PathBuf, plugin_id: PluginId) -> SourceId {
         let id = self.current_source_id;
 
@@ -95,7 +99,7 @@ impl Registry {
         };
 
         self.sources.insert(id, Rc::new(source));
-        self.plugin_for_file.insert(id, plugin_id);
+        self.plugin_for_source.insert(id, plugin_id);
         self.current_source_id += 1;
         id
     }
@@ -104,8 +108,20 @@ impl Registry {
         self.plugin_for_extension.get(extension)
     }
 
-    pub fn get_source(&self, file_id: &SourceId) -> Option<Rc<Source>> {
-        self.sources.get(file_id).cloned()
+    pub fn sources_for_plugin(&self) -> HashMap<PluginId, Vec<SourceId>> {
+    let mut map: HashMap<PluginId, Vec<SourceId>> = HashMap::new();
+
+    for (&source_id, &plugin_id) in &self.plugin_for_source {
+        map.entry(plugin_id)
+            .or_insert_with(Vec::new)
+            .push(source_id);
+    }
+
+    map
+}
+
+    pub fn get_source(&self, source_id: &SourceId) -> Option<Rc<Source>> {
+        self.sources.get(source_id).cloned()
     }
 
     pub fn link_child(&mut self, parent_id: SymbolId, child_id: SymbolId) {
