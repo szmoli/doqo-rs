@@ -1,71 +1,105 @@
-use std::{collections::{HashMap, HashSet}, error::Error, fs, path::{Path, PathBuf}};
+use std::{
+    collections::{HashMap, HashSet},
+    error::Error,
+    fs,
+    path::{Path, PathBuf},
+    process,
+};
 
-use crate::{LanguageRegistry, Registry};
+use globset::{Glob, GlobSet, GlobSetBuilder};
+use walkdir::WalkDir;
+
+use crate::{LanguagePlugin, Registry, plugin::{self, PluginId}};
 
 /// A session for multi-language projects
-/// 
-/// Q: A session fogja a saját fájljain végig hívni a LanguageProcessor extract_symbols függvényét, majd hozzáadni azokat a symbol_table-höz?
 pub struct Session {
-  /// Symbol table for the session.
-  symbol_table: Registry,
+    /// Registry for the plugins, sources and symbols for one session.
+    registry: Registry,
 
-  /// Language plugins for the session.
-  language_registry: LanguageRegistry,
-
-  /// Maps filenames to their source codes.
-  // TODO: what if the project is so big that it maxes out the RAM usage?
-  sources: HashMap<PathBuf, String>,
-
-  /// Ignored sources.
-  ignored: HashSet<PathBuf>,
+    /// The path to the project's root directory.
+    project_root: PathBuf,
+    /// Set of ignore patterns for paths not to be discovered.
+    ignore_set: GlobSet,
 }
 
 impl Session {
-  pub fn new() -> Self {
-    Self {
-      symbol_table: Registry::new(),
-      language_registry: LanguageRegistry::new(),
-      sources: HashMap::new(),
-      ignored: HashSet::new(),
-      //source_files: Vec::new(),
+    /// Initializes a new session and pre-compiles the ignore set.
+    pub fn new(project_root: &str, ignore_patterns: &[&str]) -> Result<Self, Box<dyn Error>> {
+        let project_root = fs::canonicalize(project_root)?;
+        let ignore_set = Self::load_ignore_set(&project_root, ignore_patterns)?;
+
+        Ok(Self {
+            registry: Registry::new(),
+            project_root: project_root,
+            ignore_set: ignore_set,
+        })
     }
-  }
 
-  /// Add a single source file to the session.
-  pub fn add_source<P: AsRef<Path>>(&mut self, path: P) -> Result<(), Box<dyn Error>> {
-    let p = fs::canonicalize(path.as_ref())?;
-
-    // TODO: ignore logic
-    /*
-    if self.ignored.iter().any(|ign| p.starts_with(ign)) {
-      return Ok(());
+    pub fn register_plugin(&mut self, plugin: Box<dyn LanguagePlugin>) -> PluginId {
+      self.registry.register_plugin(plugin)
     }
-    */
 
-    let source = fs::read_to_string(&p)?;
+    pub fn scan_sources(&mut self) -> Result<(), Box<dyn Error>> {
+        println!("Scanning project at {}", self.project_root.display());
 
-    self.sources.insert(p, source);
-    Ok(())
-  }
+        let mut sources_to_register = Vec::new();
+        let walker = WalkDir::new(&self.project_root).into_iter();
+        let filtered_entries = walker.filter_entry(|e| !self.is_ignored(&e.path().to_path_buf())); // Prune directories for efficiency
 
-  // TODO: ignore logic
-  /*
-  pub fn ignore_source<P: AsRef<Path>>(&mut self, path: P) -> Result<(), Box<dyn Error>> {
-    let p = fs::canonicalize(path.as_ref())?;
-    self.ignored.insert(p);
-    Ok(())
-  }
-  */
+        // Collect sources to register
+        for entry in filtered_entries {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_file() {
+                if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
+                    if let Some(id) = self.registry.plugin_for_extension(ext).copied() {
+                        println!("Found source: {}", path.display());
+                        sources_to_register.push((path.to_path_buf(), id));
+                    }
+                }
+            }
+        }
 
-  pub fn discover_sources<P: AsRef<Path>>(&mut self, path: P) {
-    // TODO
-  }
+        for (path, id) in sources_to_register {
+            self.registry.register_source(path, id);
+        }
 
-  pub fn extract_symbols(&mut self) {
-    // TODO
-  }
+        println!("Finished scanning project.");
 
-  pub fn generate_documentation(&mut self) {
-    // TODO
-  }
+        Ok(())
+    }
+
+    fn load_ignore_set(
+        project_root: &PathBuf,
+        ignore_patterns: &[&str],
+    ) -> Result<GlobSet, Box<dyn Error>> {
+        let mut globset_builder = GlobSetBuilder::new();
+
+        let project_root = fs::canonicalize(project_root)?;
+        let ignore_path = project_root.join(".doqoignore");
+
+        if ignore_path.exists() {
+            let content = fs::read_to_string(&ignore_path)?;
+            for line in content.lines() {
+                let trimmed = line.trim();
+
+                if trimmed.is_empty() || trimmed.starts_with('#') {
+                    continue;
+                }
+
+                globset_builder.add(Glob::new(trimmed)?);
+            }
+        }
+
+        for pattern in ignore_patterns {
+            globset_builder.add(Glob::new(pattern)?);
+        }
+
+        Ok(globset_builder.build()?)
+    }
+
+    fn is_ignored(&self, path: &PathBuf) -> bool {
+        let relative_path = path.strip_prefix(&self.project_root).unwrap_or(path);
+        self.ignore_set.is_match(relative_path)
+    }
 }

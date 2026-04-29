@@ -8,7 +8,7 @@ mod symbol;
 mod registry;
 
 pub use documentation::{Documentation, Metadata};
-pub use plugin::{LanguagePlugin, LanguageRegistry};
+pub use plugin::LanguagePlugin;
 pub use processor::LanguageProcessor;
 pub use session::Session;
 pub use symbol::{Symbol, SymbolId};

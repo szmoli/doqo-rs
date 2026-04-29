@@ -4,6 +4,7 @@ use common::{LanguagePlugin, LanguageProcessor};
 
 use crate::processor::RustProcessor;
 
+#[derive(Debug)]
 pub struct RustPlugin;
 
 impl LanguagePlugin for RustPlugin {

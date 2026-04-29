@@ -1,9 +1,15 @@
-use std::{fs::{self, File}, io::{BufWriter, Write}, path::{Path, PathBuf}};
-
-use common::{LanguagePlugin, Registry};
+use common::{LanguagePlugin, Registry, Session};
 use rust::plugin::RustPlugin;
 
 fn main() {
+    let mut session = Session::new("../input", &[]).expect("Couldn't initialize session");
+
+    let _rust_plugin_id = session.register_plugin(Box::new(RustPlugin));
+
+    let _scan_result = session.scan_sources();
+
+
+    /*
     let mut symbol_table = Registry::new();
     let rust_plugin = RustPlugin;
     let path = PathBuf::from("../input/in.rs");
@@ -30,5 +36,5 @@ fn main() {
     
     println!("JSON:\n{}", json)
 
-    
+    */
 }

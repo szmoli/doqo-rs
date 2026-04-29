@@ -59,8 +59,4 @@ impl LanguageProcessor for RustProcessor {
             false
         }
     }
-    
-    fn language_display(&self) -> &str {
-        "rust"
-    }
 }
