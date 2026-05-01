@@ -1,48 +1,64 @@
-use std::{fs::File, io::{BufWriter, Write}, path::Path};
+use std::{fs::{self, File}, io::{BufWriter, Write}, path::PathBuf};
 
-use common::{LanguagePlugin, Registry, Session};
-use rust::plugin::RustPlugin;
+use common::{Session};
+use rust::plugin::RustPlugin; // manual imports for now
 
-fn main() {
-    let mut session = Session::new("../input", &[]).expect("Couldn't initialize session");
+use anyhow::{Result, Context};
+use clap::Parser;
 
-    let _rust_plugin_id = session.register_plugin(Box::new(RustPlugin));
+#[derive(Parser, Debug)]
+#[command(
+  name = "doqo",
+  version,
+  about = "Generates static HTML documentation from your code symbols.",
+  long_about = None
+)]
+struct Cli {
+    #[arg(short, long, value_name = "DIR", default_value = ".")]
+    pub input: PathBuf,
+    #[arg(short, long, value_name = "DIR", default_value = "./docs")]
+    pub output: PathBuf,
+    #[arg(short = 'n', long, value_name = "PATTERN")]
+    pub ignore: Vec<String>,
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    pub verbose: u8
+}
 
-    let _scan_result = session.scan_sources();
+fn main() -> Result<()> {
+    let cli = Cli::parse();
+    let log_level = match cli.verbose {
+        0 => log::LevelFilter::Warn,
+        1 => log::LevelFilter::Info,
+        2 => log::LevelFilter::Debug,
+        _ => log::LevelFilter::Trace,
+    };
 
-    let json = session.process();    
-    let path = Path::new("json/registry.json");
-    let file = File::create(path).expect(format!("Unable to create file at {}", path.display()).as_str());
+    env_logger::Builder::new()
+        .filter_level(log_level)
+        .format_target(false)
+        .init();
+
+    log::debug!("Input directory: {:?}", cli.input);
+    log::debug!("Output directory: {:?}", cli.output);
+    log::debug!("Ignore patterns: {:?}", cli.ignore);
+
+    let mut session = Session::new(cli.input, &cli.ignore).context("Failed to initialize doqo session.")?;
+
+    let _rust_plugin_id = session.register_plugin(Box::new(RustPlugin)); // manual registering for now
+
+    session.scan_sources().context("Failed to scan sources.")?;
+
+    let json = session.process();
+    log::debug!("Registry JSON: \n{}", json);
+
+    let path = fs::canonicalize(cli.output.join("registry.json")).context("Failed to cannonicalize output path.")?;
+    log::debug!("Output file path: {}", path.display());
+
+    let file = File::create(&path).context(format!("Failed to create file: {}.", path.display()))?;
+
     let mut writer = BufWriter::new(file);
-    writer.write_all(json.as_bytes()).expect("Unable to write data");
-    writer.flush().expect("Unable to flush buffer");
+    writer.write_all(json.as_bytes()).context(format!("Failed to write JSON to {}.", path.display()))?;
+    writer.flush().context("Failed to flush buffer.")?;
 
-    /*
-    let mut symbol_table = Registry::new();
-    let rust_plugin = RustPlugin;
-    let path = PathBuf::from("../input/in.rs");
-
-    //println!("{}", source);
-
-    rust_plugin.processor().process(&path, &mut symbol_table);
-
-    let mut sorted_symbols: Vec<_> = symbol_table.symbols.iter().collect();
-    sorted_symbols.sort_by_key(|&(id, _)| id);
-
-    println!("Finished processing symbols:");
-    for symbol in sorted_symbols {
-      println!("{:?}", symbol);
-      println!();
-    }
-
-    let json = symbol_table.json();
-    let path = Path::new("json/symbol_table.json");
-    let file = File::create(path).expect(format!("Unable to create file at {}", path.display()).as_str());
-    let mut writer = BufWriter::new(file);
-    writer.write_all(json.as_bytes()).expect("Unable to write data");
-    writer.flush().expect("Unable to flush buffer");
-    
-    println!("JSON:\n{}", json)
-
-    */
+    Ok(())
 }
