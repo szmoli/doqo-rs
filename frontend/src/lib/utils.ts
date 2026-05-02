@@ -18,7 +18,7 @@ export function fqidToPath(fqid: string): string {
 }
 
 export function pathToFqid(path: string): string {
-  return path.replaceAll("/", "::");
+  return path.replace(/\/$/, "").replaceAll("/", "::");
 }
 
 export function source(symbol: DoqoSymbol, registry: DoqoRegistry): string {

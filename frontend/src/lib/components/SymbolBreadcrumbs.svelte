@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { DoqoSymbol } from '$lib/bindings/DoqoSymbol';
+  import { resolve } from '$app/paths';
 
 	let { symbol } = $props<{
 		symbol: DoqoSymbol;
@@ -17,7 +18,7 @@
 			{#if isLast}
 				<span class="font-bold text-slate-900">{part}</span>
 			{:else}
-				<a href={currentPath} class="transition-colors hover:text-blue-600 hover:underline">
+				<a href={resolve(currentPath as any)} class="transition-colors hover:text-blue-600 hover:underline">
 					{part}
 				</a>
 				<span class="mx-1 text-slate-300">::</span>

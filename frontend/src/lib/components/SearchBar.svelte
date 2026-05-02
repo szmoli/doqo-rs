@@ -1,17 +1,17 @@
 <script lang="ts">
   import Fuse from 'fuse.js';
-  import type { DoqoSymbolTable } from '$lib/bindings/DoqoSymbolTable';
-  import { fqidToPath, symbolName } from '$lib/utils';
+  import type { DoqoRegistry } from '$lib/bindings/DoqoRegistry';
+  import { symbolName } from '$lib/utils';
 	import type { DoqoSymbol } from '$lib/bindings/DoqoSymbol';
 	import SymbolCard from './SymbolCard.svelte';
 
-  let { symbolTable } = $props<{ symbolTable: DoqoSymbolTable }>();
+  let { registry } = $props<{ registry: DoqoRegistry }>();
 
   let query = $state('');
   let isOpen = $state(false);
 
   const searchList = $derived(
-    Object.values(symbolTable.symbols as DoqoSymbol[]).map(s => ({
+    Object.values(registry.symbols as DoqoSymbol[]).map(s => ({
       name: symbolName(s),
       fqid: s.fqid,
       symbol: s,
@@ -50,25 +50,8 @@
   {#if isOpen && results.length > 0}
     <div class="absolute z-50 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl ring-1 ring-black ring-opacity-5">
       <div class="max-h-80 overflow-y-auto p-2">
-        {#each results as { item }}
+        {#each results as { item } (item)}
         {@const symbol = item.symbol}
-          <!--a
-            href={item.path}
-            onclick={() => { query = ''; isOpen = false; }}
-            class="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-blue-50 group transition-colors"
-          >
-            <div class="flex flex-col min-w-0">
-              <span class="text-sm font-mono font-bold text-slate-800 group-hover:text-blue-700 truncate">
-                {item.name}
-              </span>
-              <span class="text-[10px] text-slate-400 truncate font-mono">
-                {item.fqid}
-              </span>
-            </div>
-            <span class="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-500 border border-slate-200">
-              {item.kind}
-            </span>
-          </a-->
           <SymbolCard {symbol} />
         {/each}
       </div>

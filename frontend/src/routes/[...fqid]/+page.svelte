@@ -1,29 +1,53 @@
 <script lang="ts">
-  import { resolve } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import registryJson from '$lib/json/registry.json';
 	import type { DoqoRegistry } from '$lib/bindings/DoqoRegistry';
 	import { pathToFqid, symbolName, source } from '$lib/utils';
 	import SymbolCard from '$lib/components/SymbolCard.svelte';
 	import SymbolBreadcrumbs from '$lib/components/SymbolBreadcrumbs.svelte';
 	import CodeBlock from '$lib/components/CodeBlock.svelte';
 	import Documentation from '$lib/components/Documentation.svelte';
+	import { error } from '@sveltejs/kit';
+	import { onMount } from 'svelte';
 
-	const registry = registryJson as DoqoRegistry;
-	const languages = $derived([
-		...new Set(Object.values(registry.sources).map((s) => s.language.toLowerCase()))
-	]);
+  let registry = $state<DoqoRegistry | null>(null);
+
+  onMount(async () => {
+    try {
+      const response = await fetch('registry.json');
+      registry = await response.json();
+    } catch (e) {
+      console.error("Failed to load registry", e);
+    }
+  });
+
+	const languages = $derived(
+    registry 
+      ? [...new Set(Object.values(registry.sources).map((s) => s.language.toLowerCase()))]
+      : []
+  );
 
 	const path = $derived(page.params.fqid ?? '');
 	const fqid = $derived(pathToFqid(path));
 
-	const symbol = $derived(Object.values(registry.symbols).find((s) => s.fqid === fqid));
-	const language = $derived(symbol ? registry.sources[symbol.span.source_id].language : '');
-	const code = $derived(symbol ? source(symbol, registry) : '');
+	const symbol = $derived(
+    registry ? Object.values(registry.symbols).find((s) => s.fqid === fqid) : null
+  );
+
+	$effect(() => {
+		if (!symbol) {
+			error(404, { message: 'Symbol not found in this registry' });
+		}
+	});
+
+	const language = $derived(symbol && registry ? registry.sources[symbol.span.source_id].language : '');
+  const code = $derived(symbol && registry ? source(symbol, registry) : '');
 
 	const childrenList = $derived(
-		symbol?.children.map((id) => registry.symbols[id]).filter(Boolean) ?? []
-	);
+    (symbol && registry) 
+      ? symbol.children.map((id) => registry!.symbols[id]).filter(Boolean) 
+      : []
+  );
 	const groupedChildren = $derived(Object.groupBy(childrenList, (c) => c.kind));
 	const childKinds = $derived(Object.keys(groupedChildren).sort());
 </script>
@@ -91,7 +115,7 @@
 		<h1 class="mb-4 text-2xl font-bold text-slate-800">Symbol not found</h1>
 		<p class="mb-6 font-mono text-slate-500">{fqid}</p>
 		<a
-			href={resolve("/")}
+			href={resolve('/')}
 			class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
 		>
 			Return to index

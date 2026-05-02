@@ -1,18 +1,28 @@
 <script lang="ts">
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
-	import registryJson from '$lib/json/registry.json';
 	import SymbolLink from '$lib/components/SymbolLink.svelte';
 	import type { DoqoRegistry } from '$lib/bindings/DoqoRegistry';
 	import SearchBar from '$lib/components/SearchBar.svelte';
+  import { onMount } from 'svelte';
 
-	const registry = registryJson as DoqoRegistry;
+  let registry = $state<DoqoRegistry | null>(null);
 
-	let { children } = $props();
-	let symbolsList = $derived(Object.values(registry.symbols));
+  onMount(async () => {
+    try {
+      const response = await fetch('registry.json');
+      registry = await response.json();
+    } catch (e) {
+      console.error("Failed to load registry", e);
+    }
+  });
 
-	const symbolsByKind = $derived(Object.groupBy(symbolsList, (s) => s.kind));
-	const kinds = $derived(Object.keys(symbolsByKind));
+  let { children } = $props();
+
+  let symbolsList = $derived(registry ? Object.values(registry.symbols) : []);
+  
+  const symbolsByKind = $derived(Object.groupBy(symbolsList, (s) => s.kind));
+  const kinds = $derived(Object.keys(symbolsByKind));
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
@@ -20,7 +30,7 @@
 <div class="flex h-screen">
 	<aside class="overflow-y-auto border-r border-slate-200 px-2">
 		<header class="flex items-center justify-between border-b border-slate-200 py-4 ">
-				<SearchBar symbolTable={registry} />
+				<SearchBar registry={registry} />
 		</header>
 		<nav>
 			<h2 class="mb-2 mt-4 text-s font-bold tracking-widest uppercase">Symbols</h2>

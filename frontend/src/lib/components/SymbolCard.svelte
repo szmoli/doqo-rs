@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { DoqoSymbol } from "$lib/bindings/DoqoSymbol";
   import { fqidToPath } from "$lib/utils";
+  import { resolve } from "$app/paths";
 
   let { symbol } = $props<{ 
     symbol: DoqoSymbol 
@@ -15,7 +16,7 @@
 </script>
 
 <a 
-  href={path} 
+  href={resolve(path as any)} 
   class="group flex flex-col p-4 rounded-lg border border-slate-200 bg-white shadow-sm 
          hover:border-blue-400 hover:shadow-md transition-all duration-200 h-full"
 >
