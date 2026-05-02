@@ -1,11 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
-use common::{
-    LanguageProcessor, processor::{NodeHandler},
-};
+use common::{LanguageProcessor, processor::NodeHandler};
 
 use crate::handlers::{
-    handle_block_comment, handle_const_item, handle_enum_item, handle_enum_variant, handle_field_declaration, handle_function_item, handle_line_comment, handle_macro_definition, handle_mod_item, handle_source_file, handle_struct_item, handle_trait_item, handle_type_item
+    handle_block_comment, handle_const_item, handle_enum_item, handle_enum_variant,
+    handle_field_declaration, handle_function_item, handle_line_comment, handle_macro_definition,
+    handle_mod_item, handle_source_file, handle_struct_item, handle_trait_item, handle_type_item,
 };
 
 pub struct RustProcessor {
@@ -33,7 +33,11 @@ impl RustProcessor {
 
         Self {
             handlers: handlers,
-            comment_clearers: HashSet::from(["use_declaration", "let_declaration", "macro_invocation"]),
+            comment_clearers: HashSet::from([
+                "use_declaration",
+                "let_declaration",
+                "macro_invocation",
+            ]),
         }
     }
 }
@@ -43,7 +47,6 @@ impl LanguageProcessor for RustProcessor {
         tree_sitter_rust::LANGUAGE.into()
     }
 
-    /// Returns true if a new scope was created. Returns false otherwise.
     fn handle_node(
         &self,
         node: tree_sitter::Node,
