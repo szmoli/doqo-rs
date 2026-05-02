@@ -1,10 +1,15 @@
-use std::{mem::take, path::PathBuf, rc::Rc};
+use std::{mem::take, rc::Rc};
 
 use crate::{Symbol, SymbolId, Registry, source::{SourceId, Source}};
 use tree_sitter::{Node, Parser};
 
+/// Type for Tree-sitter node handlers.
+/// 
+/// Returns true if a new scope was created for the symbol.
+/// Returns false otherwise.
 pub type NodeHandler = fn(node: Node, source: &str, &mut ProcessingContext) -> bool;
 
+/// State for the processing.
 pub struct ProcessingContext<'a> {
   scope: Vec<String>,
   comment_buffer: Vec<String>,
@@ -27,44 +32,62 @@ impl<'a> ProcessingContext<'a> {
   }
 
   // Getters
+
+  /// Returns the current source.
   pub fn current_source(&self) -> &Source {
     &self.source
   }
 
+  /// Returns the current source's ID.
   pub fn current_source_id(&self) -> SourceId {
     self.source_file_id
   } 
 
+  /// Returns the current scope.
   pub fn current_scope(&self) -> &[String] {
     &self.scope
   }
 
+  /// Returns the current symbol on the top of the scope stack.
+  pub fn current_symbol(&self) -> Option<&Symbol> {
+    let id = self.id_scope.last()?;
+    self.symbol_table.get_symbol(id)
+  }
+
+  /// Returns the current symbol on the top of the scope stack as mutable.
+  pub fn current_symbol_mut(&mut self) -> Option<&mut Symbol> {
+    let id = self.id_scope.last()?;
+    self.symbol_table.get_symbol_mut(id)
+  }
+
   // Scoping
 
+  /// Side effects:
+  /// - pushes to the scope
+  /// - pushes to the id_scope
   pub fn enter_scope(&mut self, id: SymbolId, name: &str) {
     self.scope.push(String::from(name));
     self.id_scope.push(id);
     debug_assert_eq!(self.id_scope.len(), self.scope.len());
   }
 
+  /// Side effects:
+  /// - pops the scope
+  /// - pops the id scope
+  /// 
+  /// Returns the ID and name of the popped symbol in a tuple.
   pub fn exit_scope(&mut self) -> Option<(SymbolId, String)> {
     let result = self.id_scope.pop().zip(self.scope.pop());
     debug_assert_eq!(self.id_scope.len(), self.scope.len());
     result
   }
 
-  pub fn current_symbol(&self) -> Option<&Symbol> {
-    let id = self.id_scope.last()?;
-    self.symbol_table.get_symbol(id)
-  }
-
-  pub fn current_symbol_mut(&mut self) -> Option<&mut Symbol> {
-    let id = self.id_scope.last()?;
-    self.symbol_table.get_symbol_mut(id)
-  }
-
   // Registry
 
+  /// Side effects:
+  /// - registers a new symbol into the registry
+  /// 
+  /// Returns the ID of the registered symbol.
   pub fn register_symbol(&mut self, mut symbol: Symbol) -> SymbolId {
     let parent_id = self.id_scope.last().copied();
     symbol.parent = parent_id;
@@ -80,14 +103,16 @@ impl<'a> ProcessingContext<'a> {
 
   // Comments
 
+  /// Side effects:
+  /// - pushes to the comment buffer
   pub fn push_comment(&mut self, text: &str) {
     self.comment_buffer.push(String::from(text));
   }
 
-  /// Makes a new Documentation from the comment buffer.
-  /// 
   /// Side effects: 
   /// - clears the comment buffer.
+  /// 
+  /// Returns the comments as a vector of strings.
   pub fn take_comments(&mut self) -> Vec<String> {
     take(&mut self.comment_buffer)
   }
@@ -98,8 +123,6 @@ pub trait LanguageProcessor {
     /// Get the Tree Sitter grammar for the language.
     fn language(&self) -> tree_sitter::Language;
 
-    /// Takes a path to a source file and processes its contents.
-    /// 
     /// Side effects: 
     /// - registers the source file into the symbol table
     /// - registers the symbols found in the file while walking its syntax tree
@@ -119,6 +142,8 @@ pub trait LanguageProcessor {
         self.walk_recursive(tree.root_node(), content, &mut context);
     }
 
+    /// Side effects:
+    /// - handle_node(...) calls can have side effects.
     fn walk_recursive(&self, node: Node, source: &str, context: &mut ProcessingContext) {
       let pushed_stack = self.handle_node(node, source, context);
 
@@ -132,5 +157,10 @@ pub trait LanguageProcessor {
       }
     }
 
+    /// Side effects:
+    /// - can have side effects
+    /// 
+    /// Returns true if a new scope was created for a symbol.
+    /// Returns false otherwise.
     fn handle_node(&self, node: Node, source: &str, context: &mut ProcessingContext) -> bool;
 }

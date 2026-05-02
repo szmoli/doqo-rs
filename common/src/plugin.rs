@@ -3,16 +3,17 @@ use crate::LanguageProcessor;
 
 pub type PluginId = usize;
 
-/// Describes a language.
+/// Different programming languages can be supported through this trait.
 pub trait LanguagePlugin: std::fmt::Debug {
-  /// Human readable name of the language (eg. "Rust", "Python", "Elixir")
+  /// Returns a human readable name of the language (eg. "Rust", "Python", "Elixir")
   fn name(&self) -> &'static str;
 
+  /// Returns a unique ID for the language (eg. "rust", "python", "elixir")
   fn id(&self) -> &'static str;
 
-  /// File extensions associated with the language (eg. ".rs", ".py", ".ex")
+  /// Returns the file extensions associated with the language (eg. ".rs", ".py", ".ex")
   fn extensions(&self) -> HashSet<&'static str>;
 
-  /// Processor for the specific language
+  /// Returns a processor for the language.
   fn processor(&self) -> Box<dyn LanguageProcessor>;
 }

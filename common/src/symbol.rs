@@ -4,22 +4,12 @@ use ts_rs::TS;
 
 use crate::{Documentation, LanguagePlugin, source::{SourceId, Source, Span}};
 
-/// The internal ID of a symbol.
-/// 
-/// Q: change to some kind of hash instead of usize?
 pub type SymbolId = usize;
 
 /// Holds information about a single symbol in the source.
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export, rename = "DoqoSymbol")]
 pub struct Symbol {
-  /// Path of the scopes leading to the symbol.
-  //scope: Vec<String>,
-
-  /// Name of the symbol.
-  //name: String, 
-  // pub language: String,
-
   pub kind: String,
   pub fqid: String,
 
@@ -33,13 +23,10 @@ pub struct Symbol {
 impl Symbol {
     pub fn new(name: &str, kind: &str, source_file_id: SourceId, start: usize, end: usize, scope: &[String], comments: &[String]) -> Self {
       Self {
-        //scope: scope.clone(),
-        //name: String::from(name),
         kind: String::from(kind),
         documentation: Documentation::new(comments),
         parent: None,
         children: Vec::new(),
-        // language: String::from(language),
 
         span: Span { source_id: source_file_id, start, end },
 
