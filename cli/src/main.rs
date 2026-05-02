@@ -6,9 +6,10 @@ use std::{
 use common::Session;
 use rust::plugin::RustPlugin; // manual imports for now
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Ok, Result};
 use clap::Parser;
 use rust_embed::RustEmbed;
+use warp::Filter;
 
 #[derive(RustEmbed)]
 #[folder = "../frontend/build"]
@@ -30,6 +31,10 @@ struct Cli {
     pub ignore: Vec<String>,
     #[arg(short, long, action = clap::ArgAction::Count)]
     pub verbose: u8,
+    #[arg(short, long)]
+    pub serve: bool,
+    #[arg(short, long, default_value = "8080")]
+    pub port: u16,
 }
 
 fn main() -> Result<()> {
@@ -62,6 +67,10 @@ fn main() -> Result<()> {
 
     generate_static_site(&cli.output, &json).context("Failed to generate static site.")?;
 
+    if cli.serve {
+      serve_docs(&cli.output, cli.port).context("Failed to serve documentation.")?
+    }
+
     Ok(())
 }
 
@@ -83,6 +92,28 @@ fn generate_static_site(output_directory: &PathBuf, registry_json: &str) -> Resu
     fs::write(json_path, registry_json)?;
 
     log::info!("Generated static site to {}", output_directory.display());
+
+    Ok(())
+}
+
+#[tokio::main]
+async fn serve_docs(output_directory: &PathBuf, port: u16) -> Result<()> {
+    let target_directory = output_directory.clone();
+
+    let static_files = warp::fs::dir(target_directory.clone());
+
+    let index_fallback = warp::get().and(warp::fs::file(target_directory.join("index.html")));
+
+    let routes = static_files.or(index_fallback);
+
+    let addr = ([127, 0, 0, 1], port);
+    let url = format!("http://localhost:{}", port);
+
+    log::info!("Serving documentation at: {}", url);
+
+    open::that(&url).context("Failed to open browser.")?;
+
+    warp::serve(routes).run(addr).await;
 
     Ok(())
 }
