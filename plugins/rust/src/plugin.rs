@@ -23,10 +23,4 @@ impl LanguagePlugin for RustPlugin {
     fn id(&self) -> &'static str {
         "rust"
     }
-
-    fn symbol_kinds(&self) -> HashSet<&'static str> {
-        // TODO
-        HashSet::from(["struct_item"])
-        //kinds.iter().map)
-    }
 }

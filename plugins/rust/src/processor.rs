@@ -5,7 +5,7 @@ use common::{
 };
 
 use crate::handlers::{
-    handle_const_item, handle_enum_item, handle_enum_variant, handle_field_declaration, handle_function_item, handle_line_comment, handle_macro_definition, handle_mod_item, handle_source_file, handle_struct_item, handle_trait_item, handle_type_item
+    handle_block_comment, handle_const_item, handle_enum_item, handle_enum_variant, handle_field_declaration, handle_function_item, handle_line_comment, handle_macro_definition, handle_mod_item, handle_source_file, handle_struct_item, handle_trait_item, handle_type_item
 };
 
 pub struct RustProcessor {
@@ -29,6 +29,7 @@ impl RustProcessor {
         handlers.insert("type_item", handle_type_item);
         handlers.insert("macro_definition", handle_macro_definition);
         handlers.insert("source_file", handle_source_file);
+        handlers.insert("block_comment", handle_block_comment);
 
         Self {
             handlers: handlers,
@@ -42,7 +43,7 @@ impl LanguageProcessor for RustProcessor {
         tree_sitter_rust::LANGUAGE.into()
     }
 
-    /// Returns true if stack was pushed. Returns false otherwise.
+    /// Returns true if a new scope was created. Returns false otherwise.
     fn handle_node(
         &self,
         node: tree_sitter::Node,

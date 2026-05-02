@@ -1,6 +1,4 @@
-use std::ffi::OsStr;
-
-use common::{Symbol, SymbolId, processor::ProcessingContext};
+use common::{Symbol, processor::ProcessingContext};
 use tree_sitter::Node;
 
 // Function template:
@@ -142,7 +140,7 @@ pub fn handle_mod_item(node: Node, source: &str, context: &mut ProcessingContext
   true
 }
 
-pub fn handle_source_file(node: Node, source: &str, context: &mut ProcessingContext) -> bool {
+pub fn handle_source_file(node: Node, _source: &str, context: &mut ProcessingContext) -> bool {
   let name = context.current_source().path.file_name().expect("No filename").to_string_lossy().into_owned();
   let symbol = create_symbol(node, &name, context);
 
@@ -173,8 +171,38 @@ pub fn handle_line_comment(node: Node, source: &str, context: &mut ProcessingCon
 }
 
 pub fn handle_block_comment(node: Node, source: &str, context: &mut ProcessingContext) -> bool {
-  // TODO
-  false
+    let process_content = |content: &str| -> String {
+        content
+            .lines()
+            .map(|line| {
+                let trimmed = line.trim();
+                if trimmed.starts_with('*') {
+                    trimmed[1..].trim()
+                } else {
+                    trimmed
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+
+    if let Some(_outer_marker) = node.child_by_field_name("outer") {
+        if let Some(content) = node.child_by_field_name("doc").map(|n| &source[n.byte_range()]) {
+            let clean_content = process_content(content);
+            context.push_comment(&clean_content);
+        }
+    }
+
+    if let Some(_inner_marker) = node.child_by_field_name("inner") {
+        if let Some(content) = node.child_by_field_name("doc").map(|n| &source[n.byte_range()]) {
+            let clean_content = process_content(content);
+            if let Some(symbol) = context.current_symbol_mut() {
+                symbol.append_comment(&clean_content);
+            }
+        }
+    }
+
+    false
 }
 
 
