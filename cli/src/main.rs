@@ -1,10 +1,18 @@
-use std::{fs::{self, File}, io::{BufWriter, Write}, path::PathBuf};
+use std::{
+    fs::{self},
+    path::PathBuf,
+};
 
-use common::{Session};
+use common::Session;
 use rust::plugin::RustPlugin; // manual imports for now
 
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use clap::Parser;
+use rust_embed::RustEmbed;
+
+#[derive(RustEmbed)]
+#[folder = "../frontend/build"]
+struct Frontend;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -21,7 +29,7 @@ struct Cli {
     #[arg(short = 'n', long, value_name = "PATTERN")]
     pub ignore: Vec<String>,
     #[arg(short, long, action = clap::ArgAction::Count)]
-    pub verbose: u8
+    pub verbose: u8,
 }
 
 fn main() -> Result<()> {
@@ -42,7 +50,8 @@ fn main() -> Result<()> {
     log::debug!("Output directory: {:?}", cli.output);
     log::debug!("Ignore patterns: {:?}", cli.ignore);
 
-    let mut session = Session::new(cli.input, &cli.ignore).context("Failed to initialize doqo session.")?;
+    let mut session =
+        Session::new(cli.input, &cli.ignore).context("Failed to initialize doqo session.")?;
 
     let _rust_plugin_id = session.register_plugin(Box::new(RustPlugin)); // manual registering for now
 
@@ -51,14 +60,29 @@ fn main() -> Result<()> {
     let json = session.process();
     log::debug!("Registry JSON: \n{}", json);
 
-    let path = fs::canonicalize(cli.output.join("registry.json")).context("Failed to cannonicalize output path.")?;
-    log::debug!("Output file path: {}", path.display());
+    generate_static_site(&cli.output, &json).context("Failed to generate static site.")?;
 
-    let file = File::create(&path).context(format!("Failed to create file: {}.", path.display()))?;
+    Ok(())
+}
 
-    let mut writer = BufWriter::new(file);
-    writer.write_all(json.as_bytes()).context(format!("Failed to write JSON to {}.", path.display()))?;
-    writer.flush().context("Failed to flush buffer.")?;
+fn generate_static_site(output_directory: &PathBuf, registry_json: &str) -> Result<()> {
+    fs::create_dir_all(output_directory)?;
+
+    for file in Frontend::iter() {
+        let file_path = output_directory.join(file.as_ref());
+
+        if let Some(parent) = file_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        let content = Frontend::get(file.as_ref()).unwrap();
+        fs::write(file_path, content.data)?;
+    }
+
+    let json_path = output_directory.join("registry.json");
+    fs::write(json_path, registry_json)?;
+
+    log::info!("Generated static site to {}", output_directory.display());
 
     Ok(())
 }

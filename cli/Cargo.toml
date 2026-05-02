@@ -10,3 +10,4 @@ rust = { path = "../plugins/rust" }
 anyhow.workspace = true
 log.workspace = true
 env_logger.workspace = true
+rust-embed = "8.11.0"
